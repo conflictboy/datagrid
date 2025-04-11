@@ -259,6 +259,11 @@ class DataGrid extends Control
 	/**
 	 * @var bool
 	 */
+	protected bool $infiniteScroll = false;
+
+	/**
+	 * @var bool
+	 */
 	protected $csvExport = true;
 
 	/**
@@ -529,7 +534,8 @@ class DataGrid extends Control
 			$items = $this->dataModel->filterData(
 				$this->getPaginator(),
 				$this->createSorting($this->sort, $this->sortCallback),
-				$this->assembleFilters()
+				$this->assembleFilters(),
+				$this->infiniteScroll
 			);
 		}
 
@@ -586,6 +592,8 @@ class DataGrid extends Control
 
 		$template->hasGroupActions = $this->hasGroupActions();
 		$template->hasGroupActionOnRows = $hasGroupActionOnRows;
+
+		$template->infiniteScroll = $this->infiniteScroll;
 
 		/**
 		 * Walkaround for Latte (does not know $form in snippet in {form} etc)
@@ -2041,6 +2049,26 @@ class DataGrid extends Control
 		$this->reloadTheWholeGrid();
 	}
 
+	public function handleLoadMore(int $itemsPerPage): void
+	{
+		$paginator = $this->getPaginator()->getPaginator();
+		$paginator->itemsPerPage = $itemsPerPage + $paginator->itemsPerPage;
+		$this->template->itemsPerPage = $paginator->itemsPerPage;
+
+		$this->reload(['table']);
+
+		$dataGridPaginator = clone $this->getPaginator();
+		$dataGridPaginator->getPaginator()->itemsPerPage += 1;
+
+		$items = $this->dataModel->filterData(
+			$dataGridPaginator,
+			$this->createSorting($this->sort, $this->sortCallback),
+			$this->assembleFilters(),
+			$this->infiniteScroll
+		);
+
+		$this->template->showLoadMoreButton = count((array)$items) > $paginator->itemsPerPage;
+	}
 
 	public function handleResetColumnFilter(string $key): void
 	{
@@ -2522,6 +2550,12 @@ class DataGrid extends Control
 		return $this;
 	}
 
+	public function setInfiniteScroll(bool $doInfiniteScroll): self
+	{
+		$this->infiniteScroll = $doInfiniteScroll;
+
+		return $this;
+	}
 
 	public function isPaginated(): bool
 	{
