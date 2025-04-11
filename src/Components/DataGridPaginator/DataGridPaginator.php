@@ -153,4 +153,9 @@ class DataGridPaginator extends Control
 			$this->getPaginator()->page = $this->getParent()->page;
 		}
 	}
+
+	public function __clone()
+	{
+		$this->paginator = clone $this->paginator;
+	}
 }

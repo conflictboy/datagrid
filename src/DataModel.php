@@ -125,7 +125,8 @@ final class DataModel
 	public function filterData(
 		?DataGridPaginator $paginatorComponent,
 		Sorting $sorting,
-		array $filters
+		array $filters,
+		bool $infiniteScroll = false
 	): iterable
 	{
 		$this->onBeforeFilter($this->dataSource);
@@ -139,7 +140,10 @@ final class DataModel
 		 */
 		if ($paginatorComponent !== null) {
 			$paginator = $paginatorComponent->getPaginator();
-			$paginator->setItemCount($this->dataSource->getCount());
+
+			if (!$infiniteScroll) {
+				$paginator->setItemCount($this->dataSource->getCount());
+			}
 
 			$this->dataSource->sort($sorting)->limit(
 				$paginator->getOffset(),

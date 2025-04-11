@@ -259,6 +259,11 @@ class DataGrid extends Control
 	/**
 	 * @var bool
 	 */
+	protected bool $infiniteScroll = false;
+
+	/**
+	 * @var bool
+	 */
 	protected $csvExport = true;
 
 	/**
@@ -522,15 +527,29 @@ class DataGrid extends Control
 		 * Prepare data for rendering (datagrid may render just one item)
 		 */
 		$rows = [];
+		$showLoadMoreButton = false;
+		$paginator = $this->getPaginator();
+		$itemsPerPage = $this->getPaginator()->getPaginator()->itemsPerPage;
+
+		if ($this->infiniteScroll) {
+			$paginator = clone $paginator;
+			$paginator->getPaginator()->itemsPerPage += 1;
+		}
 
 		if ($this->redrawItem !== []) {
 			$items = $this->dataModel->filterRow($this->redrawItem);
 		} else {
 			$items = $this->dataModel->filterData(
-				$this->getPaginator(),
+				$paginator,
 				$this->createSorting($this->sort, $this->sortCallback),
-				$this->assembleFilters()
+				$this->assembleFilters(),
+				$this->infiniteScroll
 			);
+		}
+
+		if ($this->infiniteScroll) {
+			$showLoadMoreButton = count((array)$items) > $itemsPerPage;
+			$items = array_slice($items, 0, $itemsPerPage);
 		}
 
 		$hasGroupActionOnRows = false;
@@ -586,6 +605,9 @@ class DataGrid extends Control
 
 		$template->hasGroupActions = $this->hasGroupActions();
 		$template->hasGroupActionOnRows = $hasGroupActionOnRows;
+
+		$template->infiniteScroll = $this->infiniteScroll;
+		$template->showLoadMoreButton = $showLoadMoreButton;
 
 		/**
 		 * Walkaround for Latte (does not know $form in snippet in {form} etc)
@@ -2041,6 +2063,14 @@ class DataGrid extends Control
 		$this->reloadTheWholeGrid();
 	}
 
+	public function handleLoadMore(int $page): void
+	{
+		$page += 1;
+		$this->getPaginator()->getPaginator()->setPage($page);
+		$this->template->infinityPage = $page;
+		$this->redrawControl('tbody');
+		$this->redrawControl('pagination');
+	}
 
 	public function handleResetColumnFilter(string $key): void
 	{
@@ -2244,7 +2274,7 @@ class DataGrid extends Control
 	public function reload(array $snippets = []): void
 	{
 		if ($this->getPresenterInstance()->isAjax()) {
-			$this->redrawControl('tbody');
+			$this->redrawControl('table');
 			$this->redrawControl('pagination');
 			$this->redrawControl('summary');
 			$this->redrawControl('thead-group-action');
@@ -2522,6 +2552,12 @@ class DataGrid extends Control
 		return $this;
 	}
 
+	public function setInfiniteScroll(bool $doInfiniteScroll): self
+	{
+		$this->infiniteScroll = $doInfiniteScroll;
+
+		return $this;
+	}
 
 	public function isPaginated(): bool
 	{
