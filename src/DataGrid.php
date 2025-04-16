@@ -529,7 +529,7 @@ class DataGrid extends Control
 		$rows = [];
 		$showLoadMoreButton = false;
 		$paginator = $this->getPaginator();
-		$itemsPerPage = $this->getPaginator()->getPaginator()->itemsPerPage;
+		$itemsPerPage = $this->getPaginator()?->getPaginator()->itemsPerPage;
 
 		if ($this->infiniteScroll) {
 			$paginator = clone $paginator;
