@@ -2553,7 +2553,6 @@ class DataGrid extends Control
 	public function setInfiniteScroll(bool $doInfiniteScroll): self
 	{
 		$this->infiniteScroll = $doInfiniteScroll;
-
 		return $this;
 	}
 
