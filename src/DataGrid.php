@@ -439,6 +439,7 @@ class DataGrid extends Control
 	 */
 	private $componentFullName;
 
+	protected $infiniteScroll = false;
 
 	public function __construct(?IContainer $parent = null, ?string $name = null)
 	{
@@ -522,6 +523,7 @@ class DataGrid extends Control
 		 * Prepare data for rendering (datagrid may render just one item)
 		 */
 		$rows = [];
+		$showLoadMoreButton = false;
 
 		if ($this->redrawItem !== []) {
 			$items = $this->dataModel->filterRow($this->redrawItem);
@@ -531,6 +533,12 @@ class DataGrid extends Control
 				$this->createSorting($this->sort, $this->sortCallback),
 				$this->assembleFilters()
 			);
+		}
+
+		if ($this->infiniteScroll) {
+			$paginator = $this->getPaginator()->getPaginator();
+			$itemsPerPage = $paginator->itemCount;
+			$showLoadMoreButton = ($paginator->itemsPerPage * $paginator->page) < $itemsPerPage;
 		}
 
 		$hasGroupActionOnRows = false;
@@ -586,6 +594,9 @@ class DataGrid extends Control
 
 		$template->hasGroupActions = $this->hasGroupActions();
 		$template->hasGroupActionOnRows = $hasGroupActionOnRows;
+
+		$template->infiniteScroll = $this->infiniteScroll;
+		$template->showLoadMoreButton = $showLoadMoreButton;
 
 		/**
 		 * Walkaround for Latte (does not know $form in snippet in {form} etc)
@@ -2000,6 +2011,14 @@ class DataGrid extends Control
 		$this->reloadTheWholeGrid();
 	}
 
+	public function handleLoadMore(int $page): void
+	{
+		$page += 1;
+		$this->getPaginator()->getPaginator()->setPage($page);
+		$this->template->infinityPage = $page;
+		$this->redrawControl('tbody');
+		$this->redrawControl('pagination');
+	}
 
 	public function handleResetFilter(): void
 	{
@@ -2522,6 +2541,12 @@ class DataGrid extends Control
 		return $this;
 	}
 
+	public function setInfiniteScroll(bool $doInfiniteScroll): self
+	{
+		$this->infiniteScroll = $doInfiniteScroll;
+
+		return $this;
+	}
 
 	public function isPaginated(): bool
 	{
